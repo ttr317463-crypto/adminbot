@@ -2,14 +2,30 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 import os
+from flask import Flask
+from threading import Thread
 
-# Renderの環境変数からトークンを取得
+# --- 無料Web Serviceのスリープ防止用Webサーバー設定 ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run_web_server():
+    # Renderが指定するポート、またはデフォルトの8080番で起動
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_web_server)
+    t.start()
+# -----------------------------------------------------
+
 TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
+MANAGEMENT_CHANNEL_ID = 1538731038702964818  # あなたの運営用チャンネルID
+PUBLIC_CHANNEL_ID = 1538731424042061894      # あなたの一般公開チャンネルID
 
-MANAGEMENT_CHANNEL_ID = 1538731038702964818  # あなたの運営用チャンネルIDに書き換え
-PUBLIC_CHANNEL_ID = 1538731424042061894      # あなたの一般公開チャンネルIDに書き換え
-
-# 画像のURLをそれぞれ設定してください
 IMAGE_ONLINE_URL = "https://cdn.discordapp.com/attachments/1505128613090168853/1538730833748299786/6DFB3956-67F1-40E0-8F5D-E6F0CBF97AE0.png?ex=6a83be43&is=6a826cc3&hm=8d1053f0d977f90b83c2ebca4c49ff80b9c7850a2f6e91d22191b68617cd7009&"
 IMAGE_SLEEP_URL = "https://cdn.discordapp.com/attachments/1505128613090168853/1538730292297207869/7B94AEC6-FB0F-4DD7-A870-D21C7329A46F.png?ex=6a83bdc1&is=6a826c41&hm=8ea8ac40ee7eefb6df0454b11b8ff881877905662ceb679b7fbc115e1e02a636&"
 
@@ -19,38 +35,19 @@ class StatusControlView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    # 🔒 ボタンを押した人がアドミン（管理者）かチェックする
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.guild_permissions.administrator:
             return True
-        
-        await interaction.response.send_message(
-            "❌ このボタンは管理者しか使用できません。", 
-            ephemeral=True
-        )
+        await interaction.response.send_message("❌ このボタンは管理者しか使用できません。", ephemeral=True)
         return False
 
-    # 「Online」ボタン
     @discord.ui.button(label="Online", style=discord.ButtonStyle.green, custom_id="status_online")
     async def online_button(self, interaction: discord.Interaction, button: Button):
-        await self.update_status(
-            interaction, 
-            title="🟢 運営対応中 (Online)", 
-            description="現在、運営スタッフが対応可能です！", 
-            color=discord.Color.green(),
-            image_url=IMAGE_ONLINE_URL
-        )
+        await self.update_status(interaction, "🟢 運営対応中 (Online)", "現在、運営スタッフが対応可能です！", discord.Color.green(), IMAGE_ONLINE_URL)
 
-    # 「Sleep」ボタン
     @discord.ui.button(label="Sleep", style=discord.ButtonStyle.secondary, custom_id="status_sleep")
     async def sleep_button(self, interaction: discord.Interaction, button: Button):
-        await self.update_status(
-            interaction, 
-            title="💤 営業時間外 (Sleep)", 
-            description="現在、運営スタッフは休み（睡眠中）です。返信は次の受付時間までお待ちください。", 
-            color=discord.Color.dark_gray(),
-            image_url=IMAGE_SLEEP_URL
-        )
+        await self.update_status(interaction, "💤 営業時間外 (Sleep)", "現在、運営スタッフは休み（睡眠中）です。返信は次の受付時間までお待ちください。", discord.Color.dark_gray(), IMAGE_SLEEP_URL)
 
     async def update_status(self, interaction: discord.Interaction, title, description, color, image_url):
         global target_msg_id
@@ -95,6 +92,8 @@ async def on_ready():
         await management_channel.send("【運営専用】ステータス切り替えパネル：", view=StatusControlView())
 
 if TOKEN:
+    # Webサーバーを先に起動してからBotを動かす
+    keep_alive()
     bot.run(TOKEN)
 else:
     print("エラー: DISCORD_BOT_TOKEN が環境変数に設定されていません。")
