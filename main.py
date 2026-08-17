@@ -43,11 +43,11 @@ class StatusControlView(View):
 
     @discord.ui.button(label="Online", style=discord.ButtonStyle.green, custom_id="status_online")
     async def online_button(self, interaction: discord.Interaction, button: Button):
-        await self.update_status(interaction, "🟢 運営対応中 (Online)", "現在、運営スタッフが対応可能です！", discord.Color.green(), IMAGE_ONLINE_URL)
+        await self.update_status(interaction, "🟢 tayu is Online", "Online", discord.Color.green(), IMAGE_ONLINE_URL)
 
     @discord.ui.button(label="Sleep", style=discord.ButtonStyle.secondary, custom_id="status_sleep")
     async def sleep_button(self, interaction: discord.Interaction, button: Button):
-        await self.update_status(interaction, "💤 営業時間外 (Sleep)", "現在、運営スタッフは休み（睡眠中）です。返信は次の受付時間までお待ちください。", discord.Color.dark_gray(), IMAGE_SLEEP_URL)
+        await self.update_status(interaction, "💤 Sleep", "Sleep", discord.Color.dark_gray(), IMAGE_SLEEP_URL)
 
     async def update_status(self, interaction: discord.Interaction, title, description, color, image_url):
         global target_msg_id
